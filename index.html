@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Event Management Portal</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f6fb;
+    color: #243047;
+}
+header {
+    background: #183b70;
+    color: white;
+    text-align: center;
+    padding: 28px 15px;
+}
+nav {
+    background: #102b50;
+    padding: 14px;
+    text-align: center;
+}
+nav a {
+    color: white;
+    margin: 0 12px;
+    text-decoration: none;
+}
+main {
+    max-width: 1100px;
+    margin: 25px auto;
+    padding: 15px;
+}
+.events {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+}
+.event, .panel {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #0001;
+}
+.event h3 { color: #183b70; }
+button {
+    background: #183b70;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+}
+input, select {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    margin: 10px 0;
+}
+section { margin-bottom: 30px; }
+footer {
+    background: #183b70;
+    color: white;
+    text-align: center;
+    padding: 18px;
+}
+</style>
+</head>
+<body>
+<header>
+    <h1>College Event Management Portal</h1>
+    <p>Discover. Participate. Celebrate.</p>
+</header>
+
+<nav>
+    <a href="#events">Events</a>
+    <a href="#register">Register</a>
+    <a href="#status">Registration Status</a>
+    <a href="#faculty">Faculty</a>
+</nav>
+
+<main>
+<section id="events">
+<h2>Upcoming College Events</h2>
+<div class="events" id="eventList"></div>
+</section>
+
+<section id="register" class="panel">
+<h2>Student Registration</h2>
+<form id="registrationForm">
+    <input id="studentName" placeholder="Student name" required>
+    <input id="studentEmail" type="email" placeholder="Email address" required>
+    <select id="eventChoice" required>
+        <option value="">Select an event</option>
+    </select>
+    <button type="submit">Register Now</button>
+</form>
+<p id="registrationMessage" aria-live="polite"></p>
+</section>
+
+<section id="status" class="panel">
+<h2>Registration Status</h2>
+<input id="searchEmail" type="email" placeholder="Enter your registered email">
+<button onclick="checkStatus()">Check Status</button>
+<p id="statusMessage" aria-live="polite"></p>
+</section>
+
+<section id="faculty" class="panel">
+<h2>Faculty Coordinator — Event Overview</h2>
+<p>View the sample event participant limits and registrations.</p>
+<div id="facultySummary"></div>
+<p><small>Demo only: registration data is stored in this browser. Faculty access is not authenticated.</small></p>
+</section>
+</main>
+
+<footer>
+<p>College Event Management Portal | 2026</p>
+</footer>
+
+<script>
+const events = [
+    { name: "Tech Symposium 2026", date: "2026-10-25",
+      time: "9:00 AM – 4:00 PM", venue: "Main Auditorium", limit: 100, count: 0 },
+    { name: "National Innovation Hackathon", date: "2026-10-28",
+      time: "9:00 AM – 6:00 PM", venue: "Computer Lab", limit: 60, count: 0 },
+    { name: "Web Development Workshop", date: "2026-11-02",
+      time: "10:00 AM – 1:00 PM", venue: "Lab Block", limit: 50, count: 0 },
+    { name: "Cultural Festival", date: "2026-11-10",
+      time: "10:00 AM – 7:00 PM", venue: "College Grounds", limit: 200, count: 0 },
+    { name: "Inter-College Quiz", date: "2026-11-15",
+      time: "9:30 AM – 12:30 PM", venue: "Seminar Hall", limit: 80, count: 0 }
+];
+
+let registrations = [];
+
+try {
+    registrations = JSON.parse(localStorage.getItem("eventRegistrations")) || [];
+} catch {
+    registrations = [];
+}
+
+events.forEach(event => {
+    event.count = registrations.filter(r => r.event === event.name).length;
+});
+
+function renderEvents() {
+    document.getElementById("eventList").innerHTML = events.map((event, index) => `
+        <article class="event">
+            <h3>${event.name}</h3>
+            <p><strong>Date:</strong> ${event.date}</p>
+            <p><strong>Schedule:</strong> ${event.time}</p>
+            <p><strong>Venue:</strong> ${event.venue}</p>
+            <p><strong>Seats:</strong> ${event.limit - event.count} remaining</p>
+            <p>Register online and bring your college ID.</p>
+            <button onclick="chooseEvent(${index})"
+                ${event.count >= event.limit ? "disabled" : ""}>
+                ${event.count >= event.limit ? "Full" : "Register"}
+            </button>
+        </article>
+    `).join("");
+
+    document.getElementById("eventChoice").innerHTML =
+        '<option value="">Select an event</option>' +
+        events.map((event, index) =>
+            `<option value="${index}" ${event.count >= event.limit ? "disabled" : ""}>${event.name}</option>`
+        ).join("");
+
+    document.getElementById("facultySummary").innerHTML = events.map(event =>
+        `<p><strong>${event.name}</strong>: ${event.count}/${event.limit} registrations</p>`
+    ).join("");
+}
+
+function chooseEvent(index) {
+    document.getElementById("eventChoice").value = index;
+    document.getElementById("register").scrollIntoView({ behavior: "smooth" });
+}
+
+document.getElementById("registrationForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById("studentName").value.trim();
+    const email = document.getElementById("studentEmail").value.trim().toLowerCase();
+    const index = Number(document.getElementById("eventChoice").value);
+    const event = events[index];
+
+    if (!name || !email || !event) return;
+
+    if (event.count >= event.limit) {
+        document.getElementById("registrationMessage").textContent = "Sorry, this event is full.";
+        return;
+    }
+
+    if (registrations.some(r => r.email === email && r.event === event.name)) {
+        document.getElementById("registrationMessage").textContent =
+            "You have already registered for this event.";
+        return;
+    }
+
+    registrations.push({
+        name, email, event: event.name,
+        status: "Registered"
+    });
+
+    localStorage.setItem("eventRegistrations", JSON.stringify(registrations));
+    event.count++;
+
+    document.getElementById("registrationMessage").textContent =
+        "Registration successful for " + event.name + "!";
+
+    this.reset();
+    renderEvents();
+});
+
+function checkStatus() {
+    const email = document.getElementById("searchEmail").value.trim().toLowerCase();
+    const matches = registrations.filter(r => r.email === email);
+
+    document.getElementById("statusMessage").textContent = matches.length
+        ? matches.map(r => r.event + ": " + r.status).join(" | ")
+        : "No registrations found for this email.";
+}
+
+renderEvents();
+</script>
+</body>
+</html>

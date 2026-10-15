@@ -1,0 +1,7 @@
+
+.git
+.gitignore
+Jenkinsfile
+tests/
+k8s/
+README.md
